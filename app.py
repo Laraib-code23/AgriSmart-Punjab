@@ -1,243 +1,237 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="AgriSmart Punjab",
-    page_icon="🌾",
-    layout="wide"
+st.set_page_config(page_title="AgriSmart Punjab", page_icon="🌾", layout="wide")
+
+st.markdown(
+    """
+    <style>
+    .reportview-container .main .block-container { padding: 1.5rem 2rem 2rem; }
+    .css-18e3th9 { background-color: #f9fafb; }
+    .stButton>button { width: 100%; border-radius: 8px; height: 3rem; background-color: #2e7d32; color: white; font-weight: 600; }
+    .stSidebar { background-color: #ffffff; }
+    h1, h2, h3, h4, h5 { color: #1f2937; }
+    .stTextInput>div>div>input, .stNumberInput>div>div>input, .stSelectbox>div>div>div>div { color: #111827; }
+    .css-14xtw13 { color: #111827; }
+    .stSidebar .stSelectbox label, .stSidebar .stRadio label, .stSidebar p, .stSidebar h3, .stSidebar h4, .stSidebar .stMarkdown, .stSidebar .stAlert { color: #111827 !important; }
+    .stSidebar .stSelectbox div[data-baseweb="select"] span, .stSidebar .stRadio div label { color: #111827 !important; }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
-# --- CUSTOM STYLING ---
-st.markdown("""
-    <style>
-    body { background-color: #f0f4f8; }
-    .stApp { color: #0f172a; font-family: 'Segoe UI', sans-serif; }
-    [data-testid="stSidebar"] { 
-        background: linear-gradient(135deg, #dbeafe 0%, #f3e8ff 100%);
-    }
-    [data-testid="stSidebar"] h1, 
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] p {
-        color: #1e293b !important;
-    }
-    .stButton>button { 
-        width: 100%; border-radius: 8px; height: 2.8em; 
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        color: white; font-weight: 600; border: none;
-    }
-    .stButton>button:hover { 
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    }
-    .main { background-color: #ffffff; }
-    </style>
-""", unsafe_allow_html=True)
-
-# Language selector
-language = st.sidebar.selectbox("Language / زبان", ["English", "Urdu"])
-
-texts = {
+languages = {
     "English": {
         "title": "AgriSmart Punjab",
-        "location": "Select City",
-        "soil": "Soil Analysis",
-        "recommend": "Crop Recommendation",
-        "advice": "Selling Advice",
-        "market": "Market Rates",
-        "schemes": "Government Schemes",
-        "nitrogen": "Nitrogen (N)",
-        "phosphorus": "Phosphorus (P)",
-        "potassium": "Potassium (K)",
-        "soil_ph": "Soil pH",
-        "temperature": "Temperature (°C)",
-        "humidity": "Humidity (%)",
-        "analyze": "Analyze Soil",
-        "rice": "Basmati Rice",
-        "wheat": "Wheat (Gandum)",
-        "cotton": "Cotton (Phutti)",
-        "maize": "Maize (Makai)",
-        "sugar": "Sugar Cane",
-        "select_crop": "Select Crop to Sell",
-        "quantity": "Quantity (40kg bags)",
-        "price": "Current Price (Rs.)",
-        "cost": "Your Cost (Rs.)",
-        "get_advice": "Get Selling Advice",
-        "hold": "HOLD - Wait for better rates",
-        "sell": "SELL - Prices dropping",
-        "monitor": "MONITOR - Stable market",
-        "revenue": "Total Revenue",
-        "profit": "Profit/Loss",
-        "wheat_price": "Rs. 3,950",
-        "rice_price": "Rs. 9,200",
-        "cotton_price": "Rs. 8,200",
-        "sugar_price": "Rs. 450",
-        "maize_price": "Rs. 2,850",
-        "stable": "Stable",
-        "rising": "Rising",
-        "falling": "Falling",
-        "tractor": "Tractor Subsidy - 30,000 tractors available",
-        "kissan": "Kissan Card - Interest-free loans",
-        "water": "Water Scheme - Drip irrigation subsidies",
-        "fertilizer": "Fertilizer Subsidy - 30% discount",
+        "subtitle": "Farmer decision support for Punjab",
+        "city_label": "Select city",
+        "language_label": "Select language",
+        "section_label": "Go to",
+        "government_updates": "Government & Subsidy Updates",
+        "subsidy_title": "Subsidy Programs",
+        "soil_title": "Soil Analysis",
+        "mandi_title": "Mandi Rate Advice",
+        "tips_title": "Educational Tips",
     },
-    "Urdu": {
-        "title": "AgriSmart Punjab",
-        "location": "شہر منتخب کریں",
-        "soil": "مٹی کا تجزیہ",
-        "recommend": "فصل کی سفارش",
-        "advice": "فروخت کا مشورہ",
-        "market": "منڈی کے نرخ",
-        "schemes": "حکومتی اسکیمیں",
-        "nitrogen": "نیٹروجن (N)",
-        "phosphorus": "فاسفورس (P)",
-        "potassium": "پوٹاشیم (K)",
-        "soil_ph": "مٹی کا pH",
-        "temperature": "درجہ حرارت (°C)",
-        "humidity": "نمی (%)",
-        "analyze": "تجزیہ کریں",
-        "rice": "باسمتی چاول",
-        "wheat": "گندم",
-        "cotton": "کپاس",
-        "maize": "مکئی",
-        "sugar": "گنے",
-        "select_crop": "فصل منتخب کریں",
-        "quantity": "مقدار (40 کلو بیگ)",
-        "price": "موجودہ قیمت (روپے)",
-        "cost": "آپ کی لاگت (روپے)",
-        "get_advice": "مشورہ لیں",
-        "hold": "انتظار کریں - بہتر نرخ",
-        "sell": "فروخت کریں - قیمتیں گر رہی ہیں",
-        "monitor": "نگرانی کریں - مستحکم",
-        "revenue": "کل آمدنی",
-        "profit": "منافع/نقصان",
-        "wheat_price": "روپے 3,950",
-        "rice_price": "روپے 9,200",
-        "cotton_price": "روپے 8,200",
-        "sugar_price": "روپے 450",
-        "maize_price": "روپے 2,850",
-        "stable": "مستحکم",
-        "rising": "بڑھتا",
-        "falling": "گرتا",
-        "tractor": "ٹریکٹر سبسڈی - 30,000 دستیاب",
-        "kissan": "کسان کارڈ - بغیر سود قرض",
-        "water": "پانی کی بچت - ڈرپ سنچائی",
-        "fertilizer": "کھاد میں 30% رعایت",
-    }
+    "اردو": {
+        "title": "ایگری سمارٹ پنجاب",
+        "subtitle": "پنجاب کے کسانوں کے لیے فیصلہ ساز مدد",
+        "city_label": "شہر منتخب کریں",
+        "language_label": "زبان منتخب کریں",
+        "section_label": "سیکشن منتخب کریں",
+        "government_updates": "سرکاری سبسڈی اور اپ ڈیٹس",
+        "subsidy_title": "سبسڈی پروگرام",
+        "soil_title": "مٹی کا تجزیہ",
+        "mandi_title": "منڈی ریٹ مشورہ",
+        "tips_title": "تعلیمی مشورے",
+    },
 }
 
-t = texts[language]
+city_options = ["Lahore", "Faisalabad", "Multan", "Rawalpindi", "Gujranwala"]
 
-# Sidebar
-st.sidebar.title(t["title"])
-st.sidebar.divider()
+city_support = {
+    "Lahore": {
+        "rate_note": "Strong rice demand and stable wheat pricing.",
+        "subsidies": ["Tractor subsidy 30%", "Kisan Card fertilizer support"],
+    },
+    "Faisalabad": {
+        "rate_note": "Cotton prices are favorable for harvest season.",
+        "subsidies": ["Pesticide subsidy", "Seed support program"],
+    },
+    "Multan": {
+        "rate_note": "Sugarcane and mango farmer support is active.",
+        "subsidies": ["Irrigation scheme", "Crop insurance support"],
+    },
+    "Rawalpindi": {
+        "rate_note": "Vegetable mandi is strong and local demand is high.",
+        "subsidies": ["Dairy farming support", "Cold storage subsidy"],
+    },
+    "Gujranwala": {
+        "rate_note": "Wheat and rice markets are steady for now.",
+        "subsidies": ["Organic fertilizer support", "Small tractor financing"],
+    },
+}
 
-cities = ["Lahore", "Faisalabad", "Multan", "Rawalpindi", "Gujranwala", "Sialkot", "Sargodha", "Jhang"]
-selected_city = st.sidebar.selectbox(t["location"], cities)
+lang = st.sidebar.selectbox(languages["English"]["language_label"], list(languages.keys()), index=1)
+city = st.sidebar.selectbox(languages[lang]["city_label"], city_options)
+section = st.sidebar.radio(
+    languages[lang]["section_label"],
+    [
+        languages[lang]["title"],
+        languages[lang]["soil_title"],
+        languages[lang]["mandi_title"],
+        "Selling Advice",
+        languages[lang]["tips_title"],
+    ],
+)
 
-st.sidebar.divider()
+st.sidebar.markdown(f"### {languages[lang]['government_updates']}")
+for subsidy in city_support[city]["subsidies"]:
+    st.sidebar.success(f"• {subsidy}")
+st.sidebar.info(city_support[city]["rate_note"])
 
-# Navigation
-page = st.sidebar.radio("Navigate", [t["soil"], t["advice"], t["market"], t["schemes"]])
+st.sidebar.markdown("---")
+st.sidebar.markdown("### Latest Alerts")
+st.sidebar.warning("Humidity alerts in southern Punjab. Monitor crops closely.")
+st.sidebar.info("Subsidy applications open for tractor and dairy support.")
 
-st.sidebar.divider()
-st.sidebar.caption(f"📍 {selected_city}")
+st.title(f"🌾 {languages[lang]['title']}")
+st.markdown(f"**{languages[lang]['subtitle']}**")
+st.markdown(f"**City:** {city}   •   **Language:** {lang}")
 
-# Main content
-st.title(t["title"])
-st.markdown(f"**Location:** {selected_city}")
+if section == languages[lang]["title"]:
+    st.subheader("Smart Farming Dashboard")
+    st.markdown(
+        "Use the sidebar to choose the section you want. This page brings government subsidy information, mandi advice, soil guidance and tips in a clean professional layout."
+    )
+    st.divider()
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Soil Advisory", "Live", "Accurate crop guidance")
+    col2.metric("Market Insight", "Updated", city_support[city]["rate_note"])
+    col3.metric("Subsidy Access", "Available", "Check sidebar programs")
 
-if page == t["soil"]:
-    st.header(t["soil"])
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        n = st.number_input(t["nitrogen"], min_value=0, max_value=150, value=70)
-        p = st.number_input(t["phosphorus"], min_value=0, max_value=150, value=35)
-        k = st.number_input(t["potassium"], min_value=0, max_value=200, value=45)
-    
-    with col2:
-        ph = st.slider(t["soil_ph"], min_value=4.0, max_value=9.0, value=7.2, step=0.1)
-        temp = st.number_input(t["temperature"], min_value=10, max_value=40, value=28)
-        humidity = st.slider(t["humidity"], min_value=0, max_value=100, value=55)
-    
-    if st.button(t["analyze"]):
-        st.divider()
-        if ph < 6.0:
-            st.warning("pH too acidic. Apply lime.")
+if section == languages[lang]["soil_title"]:
+    st.subheader("🌱 Soil Analysis & Crop Recommendations")
+    st.markdown("Enter your soil data for clear fertilizer and crop guidance.")
+    n = st.number_input("Nitrogen (N)", min_value=0, max_value=150, value=90)
+    p = st.number_input("Phosphorus (P)", min_value=0, max_value=150, value=42)
+    k = st.number_input("Potassium (K)", min_value=0, max_value=200, value=43)
+    ph = st.slider("Soil pH", min_value=4.0, max_value=9.0, value=7.0, step=0.1)
+    temp = st.number_input("Soil Temperature (°C)", min_value=10, max_value=40, value=25)
+    humidity = st.slider("Humidity (%)", min_value=0, max_value=100, value=60)
+    st.markdown("---")
+
+    if st.button("Generate Recommendation"):
+        if n > 80 and p > 40 and 6.0 < ph < 8.0:
+            st.success("✅ Recommended Crop: Basmati Rice")
+            st.write("High NPK levels and neutral pH are ideal for quality rice production.")
+        elif 40 < n <= 80 and temp < 30 and humidity < 70:
+            st.success("✅ Recommended Crop: Wheat (Gandum)")
+            st.write("Balanced nutrients and cooler conditions support a strong wheat crop.")
+        elif ph < 6.0:
+            st.warning("⚠️ Soil pH is acidic")
+            st.write("Apply lime and wait 2-3 weeks before planting sensitive crops.")
         elif n < 40:
-            st.error("Nitrogen low. Use urea.")
-        elif n > 85 and p > 45 and k > 55:
-            st.success(f"### {t['rice']}")
-            st.write("Excellent balance. Perfect for rice.")
-        elif 60 < n <= 85 and p < 45 and temp < 30:
-            st.success(f"### {t['wheat']}")
-            st.write("Ideal for Rabi wheat season.")
-        elif k > 50 and humidity < 60 and p > 30:
-            st.success(f"### {t['cotton']}")
-            st.write("Good potassium for cotton.")
+            st.error("⚠️ Nitrogen is very low")
+            st.write("Use urea or organic manure to rebuild soil fertility.")
         else:
-            st.info("Soil moderate. Try crop rotation.")
+            st.info("Soil is moderate")
+            st.write("Monitor levels and practice crop rotation for long-term health.")
 
-elif page == t["advice"]:
-    st.header(t["advice"])
-    col1, col2 = st.columns(2)
-    
-    mandi_data = {
-        "Crop": [t["wheat"], t["rice"], t["cotton"], t["sugar"], t["maize"]],
-        "Trend": [t["stable"], t["rising"], t["falling"], t["stable"], t["rising"]]
-    }
-    df = pd.DataFrame(mandi_data)
-    
-    with col1:
-        selected_crop = st.selectbox(t["select_crop"], [t["wheat"], t["rice"], t["cotton"], t["sugar"], t["maize"]])
-        quantity = st.number_input(t["quantity"], min_value=1, value=10)
-        current_price = st.number_input(t["price"], min_value=0, value=3950)
-        cost_per_bag = st.number_input(t["cost"], min_value=0, value=3000)
-    
-    with col2:
-        st.write("")
-        st.write("")
-        trend = df[df["Crop"] == selected_crop]["Trend"].values[0]
-        revenue = quantity * current_price
-        cost = quantity * cost_per_bag
-        profit = revenue - cost
-        
-        if trend == t["rising"]:
-            st.success(f"### {t['hold']}")
-        elif trend == t["falling"]:
-            st.error(f"### {t['sell']}")
+        tips = []
+        if n < 50:
+            tips.append("Add nitrogen-rich fertilizers like urea.")
+        if p < 30:
+            tips.append("Use DAP or simple superphosphate for phosphorus.")
+        if k < 30:
+            tips.append("Apply potash to support strong roots.")
+        if ph < 6.5:
+            tips.append("Add lime to raise soil pH safely.")
+        if temp > 35:
+            tips.append("Irrigate early morning to protect the crop from heat.")
+        if humidity > 80:
+            tips.append("Watch for fungal diseases and use proper ventilation.")
+
+        if tips:
+            st.markdown("**Actionable Tips:**")
+            for item in tips:
+                st.write(f"- {item}")
+
+if section == languages[lang]["mandi_title"]:
+    st.subheader("📈 Mandi Rate Advice")
+    st.markdown("City-specific market prices and trends for Punjab commodities.")
+    market_data = pd.DataFrame(
+        {
+            "Commodity": ["Wheat", "Basmati Rice", "Cotton", "Sugar Cane", "Maize"],
+            "Lahore": [3950, 9200, 8200, 450, 2850],
+            "Faisalabad": [3920, 9150, 8350, 440, 2800],
+            "Multan": [3900, 9100, 8100, 460, 2780],
+            "Rawalpindi": [3930, 9180, 8250, 455, 2820],
+            "Gujranwala": [3940, 9175, 8300, 452, 2830],
+        }
+    )
+    st.table(market_data[["Commodity", city]])
+    st.line_chart(market_data.set_index("Commodity")[city])
+    st.markdown("---")
+    st.write(
+        f"**Market note for {city}:** {city_support[city]['rate_note']}"
+    )
+
+if section == "Selling Advice":
+    st.subheader("💰 Selling Advice & Profit Planning")
+    st.markdown("Enter your harvest details and get clear profit guidance.")
+    crop_options = ["Wheat", "Basmati Rice", "Cotton", "Sugar Cane", "Maize"]
+    selected_crop = st.selectbox("Select Crop", crop_options)
+    quantity = st.number_input("Quantity (40kg bags)", min_value=1, value=10)
+    current_price = st.number_input("Market Price per 40kg (Rs.)", min_value=0, value=3950)
+    cost_per_bag = st.number_input("Your Cost per 40kg bag (Rs.)", min_value=0, value=3000)
+    st.markdown("---")
+
+    if st.button("Get Selling Advice"):
+        total_revenue = quantity * current_price
+        total_cost = quantity * cost_per_bag
+        profit = total_revenue - total_cost
+        trend = "Stable"
+        if selected_crop == "Basmati Rice":
+            trend = "Rising"
+        elif selected_crop == "Cotton":
+            trend = "Falling"
+
+        if trend == "Rising":
+            st.success("📈 Hold and wait for a better price")
+        elif trend == "Falling":
+            st.warning("📉 Consider selling soon before prices drop further")
         else:
-            st.info(f"### {t['monitor']}")
-        
-        st.metric(t["revenue"], f"Rs. {revenue:,}")
-        st.metric(t["profit"], f"Rs. {profit:,}")
+            st.info("🔄 Prices are stable. Sell when it fits your cash needs.")
 
-elif page == t["market"]:
-    st.header(t["market"])
-    
-    market_data = {
-        "Crop": [t["wheat"], t["rice"], t["cotton"], t["sugar"], t["maize"]],
-        "Price (40kg)": [t["wheat_price"], t["rice_price"], t["cotton_price"], t["sugar_price"], t["maize_price"]],
-        "Trend": [t["stable"], t["rising"], t["falling"], t["stable"], t["rising"]]
-    }
-    df_market = pd.DataFrame(market_data)
-    st.table(df_market)
-    st.caption("Source: PAMRA & Agriculture Department")
+        st.write(f"**Total Revenue:** Rs. {total_revenue:,}")
+        st.write(f"**Total Cost:** Rs. {total_cost:,}")
+        if profit >= 0:
+            st.success(f"**Projected Profit:** Rs. {profit:,}")
+        else:
+            st.error(f"**Projected Loss:** Rs. {abs(profit):,}")
 
-elif page == t["schemes"]:
-    st.header(t["schemes"])
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.info(t["tractor"])
-        st.success(t["kissan"])
-    
-    with col2:
-        st.warning(t["water"])
-        st.info(t["fertilizer"])
-
-st.divider()
-st.caption("AgriSmart Punjab | 2026 | Farmers First")
+if section == languages[lang]["tips_title"]:
+    st.subheader("📚 Educational Tips for Smart Farming")
+    st.markdown("Best practices to improve crop yield, soil health, and market readiness.")
+    with st.expander("Crop Rotation Tips"):
+        st.write(
+            "Rotate wheat with maize, cotton or legumes to keep soil healthy and reduce pests."
+        )
+    with st.expander("Irrigation Best Practices"):
+        st.write(
+            "Use drip irrigation where possible and water in early morning or late afternoon to reduce evaporation."
+        )
+    with st.expander("Soil Testing Guidance"):
+        st.write(
+            "Test soil every 2-3 years and adjust NPK levels before planting the next season."
+        )
+    with st.expander("Market Readiness"):
+        st.write(
+            "Monitor mandi rates weekly and align harvest timing with higher demand seasons."
+        )
+    with st.expander("Government Scheme Awareness"):
+        st.write(
+            "Check for tractor, fertilizer, and irrigation subsidies through the Punjab Agriculture Department."
+        )
